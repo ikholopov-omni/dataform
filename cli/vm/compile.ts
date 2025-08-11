@@ -7,6 +7,11 @@ import { CompilerFunction, NodeVM } from "vm2";
 import { encode64 } from "df/common/protos";
 import { dataform } from "df/protos/ts";
 
+export function restricted_fs_path(projectDir: string, file_path: string): string {
+  const sanitized_path = path.normalize(file_path).replace(new RegExp(`^(\.\.${path.sep})+`), "");
+  return path.join(projectDir, sanitized_path);
+}
+
 export function compile(compileConfig: dataform.ICompileConfig) {
   if (
     !fs.existsSync(
@@ -15,9 +20,9 @@ export function compile(compileConfig: dataform.ICompileConfig) {
   ) {
     throw new Error(
       "Could not find a recent installed version of @dataform/core in the project. Check that " +
-        "either `dataformCoreVersion` is specified in `workflow_settings.yaml`, or " +
-        "`@dataform/core` is specified in `package.json`. If using `package.json`, then run " +
-        "`dataform install`."
+      "either `dataformCoreVersion` is specified in `workflow_settings.yaml`, or " +
+      "`@dataform/core` is specified in `package.json`. If using `package.json`, then run " +
+      "`dataform install`."
     );
   }
   const vmIndexFileName = path.resolve(path.join(compileConfig.projectDir, "index.js"));
@@ -41,12 +46,26 @@ export function compile(compileConfig: dataform.ICompileConfig) {
   const userCodeVm = new NodeVM({
     wrapper: "none",
     require: {
-      builtin: ["path"],
+      builtin: ["path", "restricted_fs"],
       context: "sandbox",
       external: true,
       root: compileConfig.projectDir,
-      resolve: (moduleName, parentDirName) =>
-        path.join(parentDirName, path.relative(parentDirName, compileConfig.projectDir), moduleName)
+      resolve: (moduleName, parentDirName) => {
+        return path.join(parentDirName, path.relative(parentDirName, compileConfig.projectDir), moduleName)
+      },
+      mock: {
+        restricted_fs: {
+          readFileSync: (file_path: string) => {
+            return fs.readFileSync(restricted_fs_path(compileConfig.projectDir, file_path)).toString();
+          },
+          existsSync: (file_path: string) => {
+            return fs.existsSync(restricted_fs_path(compileConfig.projectDir, file_path));
+          },
+          isDirectory: (file_path: string) => {
+            return fs.statSync(restricted_fs_path(compileConfig.projectDir, file_path)).isDirectory();
+          },
+        },
+      }
     },
     sourceExtensions: ["js", "sql", "sqlx", "yaml"],
     compiler

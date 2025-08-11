@@ -1,6 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//tools:ts_library.bzl", "ts_library")
+load("//testing:index.bzl", "ts_test_suite")
 
 ts_library(
     name = "vm",
@@ -27,6 +28,20 @@ ts_library(
     deps = [
         ":vm",
         "@npm//source-map-support",
+    ],
+)
+
+ts_test_suite(
+    name = "tests",
+    srcs = [
+        "compile_test.ts",
+    ],
+    deps = [
+        ":vm",
+        "@npm//@types/chai",
+        "@npm//@types/node",
+        "@npm//chai",
+        "//testing",
     ],
 )
 
