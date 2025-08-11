@@ -90,7 +90,7 @@ if (require.main === module) {
  */
 function createCoreExecutionRequest(compileConfig: dataform.ICompileConfig): string {
   const filePaths = Array.from(
-    new Set<string>(glob.sync("!(node_modules)/**/*.*", { cwd: compileConfig.projectDir }))
+    new Set<string>(glob.sync("**/*.*", { cwd: compileConfig.projectDir }))
   );
 
   return encode64(dataform.CoreExecutionRequest, {
