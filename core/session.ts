@@ -21,6 +21,7 @@ import * as utils from "df/core/utils";
 import { toResolvable } from "df/core/utils";
 import { version as dataformCoreVersion } from "df/core/version";
 import { dataform } from "df/protos/ts";
+import { JitAction } from "./actions/jit_action";
 
 const DEFAULT_CONFIG = {
   defaultSchema: "dataform",
@@ -57,6 +58,9 @@ export class Session {
   public actionAssertionMap = new ActionMap([]);
 
   public graphErrors: dataform.IGraphErrors;
+
+  // jit.ctx.data, avilable at jit stage.
+  public jitContextData: Uint8Array;
 
   constructor(
     rootDir?: string,
@@ -413,6 +417,13 @@ export class Session {
     return notebook;
   }
 
+  public jit(config: dataform.ActionConfig.JitActionConfig): JitAction {
+    const srcFileName = utils.getCallerFile(this.rootDir);
+    const jitAction = new JitAction(this, config, srcFileName);
+    this.actions.push(jitAction);
+    return jitAction;
+  }
+
   public compileError(err: Error | string, path?: string, actionTarget?: dataform.ITarget) {
     const fileName = path || utils.getCallerFile(this.rootDir) || __filename;
 
@@ -464,6 +475,9 @@ export class Session {
       dataPreparations: this.compileGraphChunk(
         this.actions.filter(action => action instanceof DataPreparation)
       ),
+      jitActions: this.compileGraphChunk(
+        this.actions.filter(action => action instanceof JitAction)
+      ),
       graphErrors: this.graphErrors,
       dataformCoreVersion,
       targets: this.actions.map(action => action.getTarget())
@@ -475,7 +489,8 @@ export class Session {
         compiledGraph.assertions,
         compiledGraph.operations,
         compiledGraph.notebooks,
-        compiledGraph.dataPreparations
+        compiledGraph.dataPreparations,
+        compiledGraph.jitActions,
       )
     );
 
@@ -485,7 +500,8 @@ export class Session {
         compiledGraph.assertions,
         compiledGraph.operations,
         compiledGraph.notebooks,
-        compiledGraph.dataPreparations
+        compiledGraph.dataPreparations,
+        compiledGraph.jitActions,
       ),
       [].concat(compiledGraph.declarations.map(declaration => declaration.target))
     );
@@ -500,7 +516,8 @@ export class Session {
         compiledGraph.assertions,
         compiledGraph.operations,
         compiledGraph.notebooks,
-        compiledGraph.dataPreparations
+        compiledGraph.dataPreparations,
+        compiledGraph.jitActions,
       )
     );
     verifyObjectMatchesProto(

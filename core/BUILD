@@ -23,6 +23,7 @@ ts_library(
         "actions/declaration.ts",
         "actions/incremental_table.ts",
         "actions/index.ts",
+        "actions/jit_action.ts",
         "actions/notebook.ts",
         "actions/operation.ts",
         "actions/table.ts",
@@ -31,6 +32,7 @@ ts_library(
         "column_descriptors.ts",
         "compilers.ts",
         "contextables.ts",
+        "db_client.ts",
         "index.ts",
         "main.ts",
         "path.ts",
@@ -62,7 +64,6 @@ ts_library(
 ts_test_suite(
     name = "tests",
     srcs = [
-        "main_test.ts",
         "actions/assertion_test.ts",
         "actions/data_preparation_test.ts",
         "actions/declaration_test.ts",
@@ -73,6 +74,7 @@ ts_test_suite(
         "actions/table_test.ts",
         "actions/test_test.ts",
         "actions/view_test.ts",
+        "main_test.ts",
     ],
     data = [
         ":node_modules",

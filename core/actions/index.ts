@@ -10,6 +10,7 @@ import { IColumnsDescriptor } from "df/core/column_descriptors";
 import { Resolvable } from "df/core/contextables";
 import { Session } from "df/core/session";
 import { dataform } from "df/protos/ts";
+import { JitAction } from "./jit_action";
 
 export type Action =
   | Table
@@ -19,7 +20,8 @@ export type Action =
   | Assertion
   | Declaration
   | Notebook
-  | DataPreparation;
+  | DataPreparation
+  | JitAction;
 
 export type ActionProto =
   | dataform.Table // core.proto's Table represents the Table, View or IncrementalTable action type.
@@ -27,7 +29,8 @@ export type ActionProto =
   | dataform.Assertion
   | dataform.Declaration
   | dataform.Notebook
-  | dataform.DataPreparation;
+  | dataform.DataPreparation
+  | dataform.JitAction;
 
 // In v4, consider making methods on inheritors of this private, forcing users to use constructors
 // in order to populate actions.

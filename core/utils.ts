@@ -10,6 +10,7 @@ import { Resolvable } from "df/core/contextables";
 import * as Path from "df/core/path";
 import { Session } from "df/core/session";
 import { dataform } from "df/protos/ts";
+import { JitAction } from "./actions/jit_action";
 
 declare var __webpack_require__: any;
 declare var __non_webpack_require__: any;
@@ -20,7 +21,8 @@ type actionsWithDependencies =
   | IncrementalTable
   | Operation
   | Notebook
-  | DataPreparation;
+  | DataPreparation
+  | JitAction;
 
 // This side-steps webpack's require in favour of the real require.
 export const nativeRequire =

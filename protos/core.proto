@@ -301,6 +301,22 @@ message DataPreparation {
   reserved 7, 10;
 }
 
+message JitAction {
+  Target target = 1;
+
+  Target canonical_target = 2;
+
+  repeated string tags = 3;
+
+  repeated Target dependency_targets = 4;
+
+  string file_name = 5;
+
+  bool disabled = 6;
+
+  string jit_action = 7;
+}
+
 message LoadConfiguration {
   oneof mode {
     SimpleLoadMode replace = 1;
@@ -329,6 +345,7 @@ message CompiledGraph {
   repeated Test tests = 8;
   repeated Notebook notebooks = 12;
   repeated DataPreparation data_preparations = 13;
+  repeated JitAction jit_actions = 14;
 
   GraphErrors graph_errors = 7;
 

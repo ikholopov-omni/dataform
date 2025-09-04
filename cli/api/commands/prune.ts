@@ -20,7 +20,10 @@ export function prune(
     ),
     operations: compiledGraph.operations.filter(action =>
       includedActionNames.has(targetAsReadableString(action.target))
-    )
+    ),
+    jitActions: compiledGraph.jitActions.filter(action =>
+      includedActionNames.has(targetAsReadableString(action.target))
+    ),
   };
 }
 
@@ -32,7 +35,8 @@ function computeIncludedActionNames(
   const allActions: CompileAction[] = [].concat(
     compiledGraph.tables,
     compiledGraph.operations,
-    compiledGraph.assertions
+    compiledGraph.assertions,
+    compiledGraph.jitActions,
   );
 
   const allActionNames = new Set<string>(
@@ -75,9 +79,9 @@ function computeIncludedActionNames(
       const matchingDependencyNames =
         action.dependencyTargets?.length > 0
           ? utils.matchPatterns(
-              action.dependencyTargets.map(dependency => targetAsReadableString(dependency)),
-              [...allActionNames]
-            )
+            action.dependencyTargets.map(dependency => targetAsReadableString(dependency)),
+            [...allActionNames]
+          )
           : [];
       matchingDependencyNames.forEach(dependencyName => {
         if (!includedActionNames.has(dependencyName)) {

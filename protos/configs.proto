@@ -552,6 +552,47 @@ message ActionConfig {
     }
   }
 
+  message JitActionConfig {
+    // The name of the Jit action.
+    string name = 1;
+
+    // The dataset (schema) of the destination table.
+    string dataset = 2;
+
+    // The Google Cloud project (database) of the destination table.
+    string project = 3;
+
+    // Targets of actions that this action is dependent on.
+    repeated Target dependency_targets = 4;
+
+    // Path to the source file that the contents of the action is loaded from.
+    string filename = 5;
+
+    // A list of user-defined tags with which the action should be labeled.
+    repeated string tags = 6;
+
+    // If set to true, this action will not be executed. However, the action can
+    // still be depended upon. Useful for temporarily turning off broken
+    // actions.
+    bool disabled = 7;
+
+    // Description of the action.
+    string description = 8;
+
+    // When set to true, assertions dependent upon any dependency will
+    // be add as dedpendency to this action
+    bool depend_on_dependency_assertions = 9;
+
+    enum ActionType {
+      UNSPECIFIED = 0;
+      VIEW = 1;
+      TABLE = 2;
+      INCREMENTAL_TABLE = 3;
+    }
+
+    ActionType type = 10;
+  }
+
   oneof action {
     TableConfig table = 1;
     ViewConfig view = 2;
@@ -561,6 +602,7 @@ message ActionConfig {
     DeclarationConfig declaration = 6;
     NotebookConfig notebook = 7;
     DataPreparationConfig data_preparation = 8;
+    JitActionConfig jit_action = 9;
   }
 
   message LoadModeConfig {

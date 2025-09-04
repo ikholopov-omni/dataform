@@ -1,33 +1,11 @@
 import { QueryOrAction } from "df/cli/api/dbadapters/execution_sql";
+import type { IDbClient, IExecutionResult, OnCancel } from "df/core/db_client";
 import { dataform } from "df/protos/ts";
 
-export type OnCancel = (handleCancel: () => void) => void;
-
-export interface IExecutionResult {
-  rows: any[];
-  metadata: dataform.IExecutionMetadata;
-}
+export { IDbClient, IExecutionResult, OnCancel };
 
 export interface IBigQueryError extends Error {
   metadata?: dataform.IExecutionMetadata
-}
-
-export interface IDbClient {
-  execute(
-    statement: string,
-    options?: {
-      onCancel?: OnCancel;
-      interactive?: boolean;
-      rowLimit?: number;
-      byteLimit?: number;
-      bigquery?: {
-        labels?: { [label: string]: string };
-        location?: string;
-        jobPrefix?: string;
-        dryRun?: boolean;
-      };
-    }
-  ): Promise<IExecutionResult>;
 }
 
 export interface IDbAdapter extends IDbClient {
