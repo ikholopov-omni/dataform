@@ -315,6 +315,10 @@ message JitAction {
   bool disabled = 6;
 
   string jit_action = 7;
+
+  ActionDescriptor action_descriptor = 8;
+  
+  TableType enum_type = 9;
 }
 
 message LoadConfiguration {

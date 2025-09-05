@@ -45,6 +45,11 @@ export class Task {
   public static assertion(statement: string) {
     return new Task().type("assertion").statement(statement);
   }
+
+  public static jit(statement: string) {
+    return new Task().type("jit").statement(statement);
+  }
+
   private proto: dataform.IExecutionTask = dataform.ExecutionTask.create();
 
   public type(v: string) {

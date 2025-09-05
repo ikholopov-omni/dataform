@@ -182,6 +182,14 @@ from (${query}) as insertions`;
     return tasks;
   }
 
+  public jitTasks(action: dataform.IJitAction,
+    runConfig: dataform.IRunConfig,
+  ): Tasks {
+    const tasks = new Tasks();
+    tasks.add(Task.jit(action.jitAction));
+    return tasks;
+  }
+
   public dropIfExists(target: dataform.ITarget, type: dataform.TableMetadata.Type) {
     return `drop ${this.tableTypeAsSql(type)} if exists ${this.resolveTarget(target)}`;
   }

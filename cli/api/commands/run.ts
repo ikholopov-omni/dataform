@@ -411,9 +411,13 @@ export class Runner {
     };
     parentAction.tasks.push(taskResult);
     this.notifyListeners();
+    
     if(options.bigquery?.dryRun && task.type === "assertion") {
       taskResult.status = dataform.TaskResult.ExecutionStatus.SUCCESSFUL;
-    } 
+    }
+    else if(task.type === "jit") {
+      
+    }
     else {
       try {
         // Retry this function a given number of times, configurable by user

@@ -1,3 +1,4 @@
+import { table } from "console";
 import { prune } from "df/cli/api/commands/prune";
 import { state } from "df/cli/api/commands/state";
 import * as dbadapters from "df/cli/api/dbadapters";
@@ -62,7 +63,8 @@ export class Builder {
         )
       ),
       this.prunedGraph.operations.map(o => this.buildOperation(o)),
-      this.prunedGraph.assertions.map(a => this.buildAssertion(a))
+      this.prunedGraph.assertions.map(a => this.buildAssertion(a)),
+      this.prunedGraph.jitActions.map(a => this.buildJitAction(a, this.runConfig)),
     );
     return dataform.ExecutionGraph.create({
       projectConfig: this.prunedGraph.projectConfig,
@@ -111,14 +113,26 @@ export class Builder {
     };
   }
 
+  private buildJitAction(action: dataform.IJitAction,
+      runConfig: dataform.IRunConfig) {
+    return {
+      ...this.toPartialExecutionAction(action),
+      tableType: utils.tableTypeEnumToString(action.enumType),
+      tasks: action.disabled
+        ? {}
+        : this.executionSql.jitTasks(action, runConfig).build(),
+        hermeticity: dataform.ActionHermeticity.NON_HERMETIC,
+    }
+  }
+
   private toPartialExecutionAction(
-    action: dataform.ITable | dataform.IOperation | dataform.IAssertion
+    action: dataform.ITable | dataform.IOperation | dataform.IAssertion | dataform.IJitAction
   ) {
     return dataform.ExecutionAction.create({
       target: action.target,
       fileName: action.fileName,
       dependencyTargets: action.dependencyTargets,
-      actionDescriptor: action.actionDescriptor
+      actionDescriptor: action.actionDescriptor,
     });
   }
 }
