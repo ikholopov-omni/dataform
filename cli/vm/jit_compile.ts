@@ -146,12 +146,10 @@ export async function compile(modules_path: string, client: IDbClient, action: d
 export function listenForExecutionRequest() {
   const client = new JitDbClient();
   process.on("message", (request: dataform.IJitExecutionRequest) => {
-    console.warn(`rcv req: ${JSON.stringify(request)}`)
     try {
       if (request.compile) {
         compile(request.compile.projectDir, client, request.compile.action, {statement: request.compile.statement}).then((compiledResult: Uint8Array) => {
           let result = dataform.JitExecutionResponse.decode(Uint8Array.from(compiledResult));
-          console.warn(`snd rsp: ${JSON.stringify(result)}`)
           process.send(result);
         });
         return;

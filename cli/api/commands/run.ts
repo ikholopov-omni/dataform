@@ -301,6 +301,16 @@ export class Runner {
     ]);
   }
 
+  private async getTasks(client: dbadapters.IDbClient,
+    action: dataform.IExecutionAction,
+  ) {
+    if (action.tasks.at(0)?.type === "jit") {
+      return await jitCompile(client, action, action.tasks.at(0), this.graph, this.executionOptions);
+    }
+
+    return action.tasks;
+  }
+
   private async executeAction(action: dataform.IExecutionAction): Promise<dataform.IActionResult> {
     let actionResult: dataform.IActionResult = {
       target: action.target,
@@ -329,7 +339,8 @@ export class Runner {
 
     await this.dbadapter.withClientLock(async client => {
       // Start running tasks from the last executed task (if any), onwards.
-      for (const task of action.tasks.slice(actionResult.tasks.length)) {
+      const tasks = await this.getTasks(client, action);
+      for (const task of tasks.slice(actionResult.tasks.length)) {
         if (this.stopped) {
           return actionResult;
         }
@@ -337,6 +348,7 @@ export class Runner {
           actionResult.status === dataform.ActionResult.ExecutionStatus.RUNNING &&
           !this.cancelled
         ) {
+
           const taskStatus = await this.executeTask(client, task, actionResult,
             action, {
             bigquery: {
@@ -419,10 +431,6 @@ export class Runner {
 
     if (options.bigquery?.dryRun && task.type === "assertion") {
       taskResult.status = dataform.TaskResult.ExecutionStatus.SUCCESSFUL;
-    }
-    else if (task.type === "jit") {
-      const compiledTask = await jitCompile(client, action, task, this.graph, this.executionOptions);
-      return await this.executeTask(client, compiledTask, parentAction, action, options);
     }
     else {
       try {

@@ -79,12 +79,14 @@ function forkProcess() {
     return fork(require.resolve(forkScript), [], { stdio: [0, 1, 2, "ipc", "pipe"] });
 }
 
-function jitCompileInFork(client: IDbClient, action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask, runConfig: dataform.IRunConfig, projectDir: string): [Promise<string>, ChildProcess] {
+function jitCompileInFork(client: IDbClient,
+    action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask,
+    projectDir: string
+): [Promise<string>, ChildProcess] {
     const childProcess = forkProcess();
     let compileInChildProcess = new Promise<string>(async (resolve, reject) => {
         childProcess.on("error", (e: Error) => reject(coerceAsError(e)));
         childProcess.on("message", (message: dataform.IJitExecutionResponse) => {
-            console.warn(`rcv rsp: ${JSON.stringify(message)}`);
             if (message.compilationResponse?.compilationError) {
                 reject(new Error(message.compilationResponse.compilationError));
                 return;
@@ -124,30 +126,37 @@ function jitCompileInFork(client: IDbClient, action: dataform.IExecutionAction, 
     return [compileInChildProcess, childProcess];
 }
 
-export async function jitCompile(client: IDbClient, action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask, graph: dataform.IExecutionGraph, executionOption: IExecutionOptions): Promise<dataform.IExecutionTask> {
-    let [compileInChildProcess, childProcess] = jitCompileInFork(client, action, jitTask, graph.runConfig, executionOption.projectDir);
+export async function jitCompile(
+    client: IDbClient,
+    action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask,
+    graph: dataform.IExecutionGraph, executionOption: IExecutionOptions
+): Promise<dataform.IExecutionTask[]> {
+    let [compileInChildProcess, childProcess] = jitCompileInFork(client,
+        action, jitTask, executionOption.projectDir);
     let timer;
     const timeout = new Promise(
         (resolve, reject) =>
         (timer = setTimeout(
             () => reject(new JitCompilationTimeoutError("Compilation timed out")),
-            5 * 60 * 1000
+            graph.runConfig.timeoutMillis || 5 * 60 * 1000
         ))
     );
     try {
         await Promise.race([timeout, compileInChildProcess]);
         const result = await compileInChildProcess;
         const executionSql = new ExecutionSql(graph.projectConfig, executionOption.dataformCoreVersion);
-        return {
-            type: action.tableType,
-            statement: executionSql.createOrReplace({
-                ...action,
-                enumType: dataform.TableType[
-                    action.tableType.toUpperCase() as keyof typeof dataform.TableType
-                ],
-                query: result,
-            }),
+        const table = {
+            ...action,
+            enumType: dataform.TableType[
+                action.tableType.toUpperCase() as keyof typeof dataform.TableType
+            ],
+            query: result,
         };
+        return executionSql.publishTasks(table,
+            graph.runConfig,
+            graph.warehouseState.tables
+                .find(table => !!table?.target?.name && (table?.target?.name === action?.target?.name)))
+            .build();
     } finally {
         if (!childProcess.killed) {
             childProcess.kill("SIGKILL");

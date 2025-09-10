@@ -57,7 +57,6 @@ export class JitDbClient implements IDbClient {
         return new Promise<IExecutionResult>((resolve, reject) => {
             let id = this.queriesCounter++;
             this.pendingRequests.set(id, [resolve, reject]);
-            console.warn(`snd req: ${statement}`)
             process.send(dataform.JitExecutionResponse.create({
                 adhocQuery: dataform.JitAdhocQueryRequest.create({
                     query: statement,
@@ -68,7 +67,6 @@ export class JitDbClient implements IDbClient {
     }
 
     public onMessage(message: dataform.IJitExecutionRequest) {
-        console.warn(`onMsg: ${JSON.stringify(message)}`)
         const queryId = message.adhocQueryResponse.queryId;
         const [resolve, reject] = this.pendingRequests.get(queryId);
         this.pendingRequests.delete(queryId);
