@@ -32,6 +32,17 @@ export type ActionProto =
   | dataform.DataPreparation
   | dataform.JitAction;
 
+export type IActionProto =
+  | dataform.ITable // core.proto's Table represents the Table, View or IncrementalTable action type.
+  | dataform.IOperation
+  | dataform.IAssertion
+  | dataform.IDeclaration
+  | dataform.INotebook
+  | dataform.IDataPreparation
+  | dataform.IJitAction;
+
+
+
 // In v4, consider making methods on inheritors of this private, forcing users to use constructors
 // in order to populate actions.
 export abstract class ActionBuilder<T> {

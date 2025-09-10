@@ -61,6 +61,20 @@ export class JitAction extends ActionBuilder<dataform.JitAction> {
         if (config.disabled) {
             this.proto.disabled = config.disabled;
         }
+        switch (config.type) {
+            case dataform.ActionConfig.JitActionConfig.ActionType.UNSPECIFIED:
+            case dataform.ActionConfig.JitActionConfig.ActionType.OPERATION:
+                this.proto.enumType = dataform.JitAction.JitActionType.OPERATION;
+                break;
+            case dataform.ActionConfig.JitActionConfig.ActionType.TABLE:
+                this.proto.enumType = dataform.JitAction.JitActionType.TABLE;
+                break;
+            case dataform.ActionConfig.JitActionConfig.ActionType.VIEW:
+                this.proto.enumType = dataform.JitAction.JitActionType.VIEW;
+                break;
+            default:
+                throw new Error(`Unsupported JIT action type: ${this.proto.enumType}`);
+        }
     }
 
     /** @hidden */

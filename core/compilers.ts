@@ -2,6 +2,7 @@ import { load as loadYaml, YAMLException } from "js-yaml";
 
 import * as Path from "df/core/path";
 import { SyntaxTreeNode, SyntaxTreeNodeType } from "df/sqlx/lexer";
+import { dataform } from "df/protos/ts";
 
 const CONTEXT_FUNCTIONS = [
   "self",
@@ -13,14 +14,14 @@ const CONTEXT_FUNCTIONS = [
   "schema",
   "database"
 ]
-    .map(name => `const ${name} = ctx.${name} ? ctx.${name}.bind(ctx) : undefined;`)
-    .join("\n");
+  .map(name => `const ${name} = ctx.${name} ? ctx.${name}.bind(ctx) : undefined;`)
+  .join("\n");
 
 const CONTEXT_CONSTANTS = [
   "EXPECT"
 ]
-    .map(name => `const ${name} = ctx.${name} ? ctx.${name} : undefined;`)
-    .join("\n");
+  .map(name => `const ${name} = ctx.${name} ? ctx.${name} : undefined;`)
+  .join("\n");
 
 export const INVALID_YAML_ERROR_STRING = "is not a valid YAML file";
 
@@ -82,6 +83,41 @@ export function extractJsBlocks(code: string): { sql: string; js: string } {
   };
 }
 
+interface JitContext {
+  return: (result: Uint8Array) => void,
+}
+
+type MainAsyncResult = { kind: 'query', query: string } | { kind: 'error', error: Error };
+
+export function jitCompile(code: string) {
+  const globalAny = global as any;
+  const ctx = globalAny.ctx as JitContext;
+
+  const mainBody = new Function("ctx", `return new Promise(resolve => {
+      const mainAsync = async () => {
+        ${code}
+      };
+      mainAsync().then(query => resolve({kind: 'query', query: query})).catch(e => resolve({kind: 'error', error: e}));
+    })`);
+
+  mainBody(ctx).then((result: MainAsyncResult) => {
+    const compilationResponse = new dataform.JitCompilationResponse(
+      result.kind === 'query' ? { query: result.query } : { compilationError: result.error.toString() }
+    );
+    const response = new dataform.JitExecutionResponse({
+      compilationResponse: compilationResponse,
+    });
+    ctx.return(dataform.JitExecutionResponse.encode(response).finish());
+  }
+  ).catch((e: Error) => {
+    const compilationResponse = new dataform.JitCompilationResponse({ compilationError: e.toString() });
+    const response = new dataform.JitExecutionResponse({
+      compilationResponse: compilationResponse,
+    });
+    ctx.return(dataform.JitExecutionResponse.encode(response).finish());
+  });
+}
+
 function compileSqlx(rootNode: SyntaxTreeNode, path: string): string {
   const { config, js, sql, incremental, preOperations, postOperations, inputs } = extractSqlxParts(
     rootNode
@@ -100,8 +136,7 @@ function compileSqlx(rootNode: SyntaxTreeNode, path: string): string {
     ${js}
     return [${sql.map(sqlOp => `\`${sqlOp}\``)}];
   },
-  incrementalWhereContextable: ${
-    !!incremental
+  incrementalWhereContextable: ${!!incremental
       ? `(ctx) => {
     ${CONTEXT_FUNCTIONS}
     ${CONTEXT_CONSTANTS}
@@ -109,9 +144,8 @@ function compileSqlx(rootNode: SyntaxTreeNode, path: string): string {
     return \`${incremental}\`
   }`
       : "undefined"
-  },
-  preOperationsContextable: ${
-    preOperations.length > 0
+    },
+  preOperationsContextable: ${preOperations.length > 0
       ? `(ctx) => {
     ${CONTEXT_FUNCTIONS}
     ${CONTEXT_CONSTANTS}
@@ -119,9 +153,8 @@ function compileSqlx(rootNode: SyntaxTreeNode, path: string): string {
     return [${preOperations.map(preOpSql => `\`${preOpSql}\``)}];
   }`
       : "undefined"
-  },
-  postOperationsContextable: ${
-    postOperations.length > 0
+    },
+  postOperationsContextable: ${postOperations.length > 0
       ? `(ctx) => {
     ${CONTEXT_FUNCTIONS}
     ${CONTEXT_CONSTANTS}
@@ -129,7 +162,7 @@ function compileSqlx(rootNode: SyntaxTreeNode, path: string): string {
     return [${postOperations.map(postOpSql => `\`${postOpSql}\``)}];
   }`
       : "undefined"
-  },
+    },
   inputContextables: [
     ${inputs
       .map(
@@ -198,13 +231,13 @@ function extractSqlxParts(rootNode: SyntaxTreeNode) {
       const sqlCodeBlockWithoutOuterBraces =
         node.children().length === 1
           ? new SyntaxTreeNode(SyntaxTreeNodeType.SQL, [
-              firstChild.slice(firstChild.indexOf("{") + 1, firstChild.lastIndexOf("}"))
-            ])
+            firstChild.slice(firstChild.indexOf("{") + 1, firstChild.lastIndexOf("}"))
+          ])
           : new SyntaxTreeNode(SyntaxTreeNodeType.SQL, [
-              firstChild.slice(firstChild.indexOf("{") + 1),
-              ...node.children().slice(1, -1),
-              lastChild.slice(0, lastChild.lastIndexOf("}"))
-            ]);
+            firstChild.slice(firstChild.indexOf("{") + 1),
+            ...node.children().slice(1, -1),
+            lastChild.slice(0, lastChild.lastIndexOf("}"))
+          ]);
       const statements = createEscapedStatements(sqlCodeBlockWithoutOuterBraces.children());
 
       if (firstChild.startsWith("incremental_where")) {

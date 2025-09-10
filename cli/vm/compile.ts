@@ -46,7 +46,7 @@ export function compile(compileConfig: dataform.ICompileConfig) {
       external: true,
       root: compileConfig.projectDir,
       resolve: (moduleName, parentDirName) =>
-        path.join(parentDirName, path.relative(parentDirName, compileConfig.projectDir), moduleName)
+        path.join(parentDirName, path.relative(parentDirName, compileConfig.projectDir), moduleName),
     },
     sourceExtensions: ["js", "sql", "sqlx", "yaml"],
     compiler

@@ -57,8 +57,7 @@ const projectDirMustExistOption = {
     );
     if (!fs.existsSync(dataformJsonPath) && !fs.existsSync(workflowSettingsYamlPath)) {
       throw new Error(
-        `${
-          argv[projectDirOption.name]
+        `${argv[projectDirOption.name]
         } does not appear to be a dataform directory (missing workflow_settings.yaml file).`
       );
     }
@@ -219,7 +218,7 @@ export function runCli() {
               if (!argv[ProjectConfigOptions.defaultDatabase.name]) {
                 throw new Error(
                   `The ${ProjectConfigOptions.defaultDatabase.name} positional argument is ` +
-                    `required. Use "dataform help init" for more info.`
+                  `required. Use "dataform help init" for more info.`
                 );
               }
             }
@@ -235,7 +234,7 @@ export function runCli() {
               if (!argv[ProjectConfigOptions.defaultLocation.name]) {
                 throw new Error(
                   `The ${ProjectConfigOptions.defaultLocation.name} positional argument is ` +
-                    `required. Use "dataform help init" for more info.`
+                  `required. Use "dataform help init" for more info.`
                 );
               }
             }
@@ -297,7 +296,7 @@ export function runCli() {
               case credentials.TestResultStatus.OTHER_ERROR: {
                 throw new Error(
                   `Credentials test query failed: ${testResult.error.stack ||
-                    testResult.error.message}`
+                  testResult.error.message}`
                 );
               }
             }
@@ -491,7 +490,7 @@ export function runCli() {
           if (argv[jsonOutputOption.name] && !argv[dryRunOptionName]) {
             print(
               `For execution, the --${jsonOutputOption.name} option is only supported if the ` +
-                `--${dryRunOptionName} option is enabled`
+              `--${dryRunOptionName} option is enabled`
             );
             return;
           }
@@ -569,7 +568,11 @@ export function runCli() {
             print("Running...\n");
           }
 
-          const runner = run(dbadapter, executionGraph, { bigquery: bigqueryOptions });
+          const runner = run(dbadapter, executionGraph, {
+            bigquery: bigqueryOptions,
+            projectDir: argv[projectDirOption.name],
+            dataformCoreVersion: compiledGraph.dataformCoreVersion,
+          });
           process.on("SIGINT", () => {
             runner.cancel();
           });
@@ -790,7 +793,7 @@ class ProjectConfigOptions {
       ) {
         throw new Error(
           `--${ProjectConfigOptions.schemaSuffix.name} should contain only ` +
-            `alphanumeric characters and/or underscores.`
+          `alphanumeric characters and/or underscores.`
         );
       }
     }

@@ -4,5 +4,5 @@ set -e
 
 bazelisk build //packages/@dataform/cli:bin //packages/@dataform/core:package
 bash -c "cd $@ && rm -rf ./node_modules" || true
-bash -c "cd $@ && npm ci $PWD/bazel-bin/packages/@dataform/core/package"
-./bazel-bin/packages/@dataform/cli/bin.sh compile "$@"
+bash -c "cd $@ && npm i $PWD/bazel-bin/packages/@dataform/core/package"
+./bazel-bin/packages/@dataform/cli/bin.sh compile "$@" --json

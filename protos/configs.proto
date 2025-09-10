@@ -588,6 +588,7 @@ message ActionConfig {
       VIEW = 1;
       TABLE = 2;
       INCREMENTAL_TABLE = 3;
+      OPERATION = 4;
     }
 
     ActionType type = 10;

@@ -1,7 +1,7 @@
 import { default as TarjanGraphConstructor, Graph as TarjanGraph } from "tarjan-graph";
 
 import { encode64, verifyObjectMatchesProto, VerifyProtoErrorBehaviour } from "df/common/protos";
-import { Action, ActionProto, ILegacyTableConfig, TableType } from "df/core/actions";
+import { Action, ActionProto, IActionProto, ILegacyTableConfig, TableType } from "df/core/actions";
 import { AContextable, Assertion, AssertionContext } from "df/core/actions/assertion";
 import {
   DataPreparation,
@@ -740,7 +740,7 @@ export class Session {
       actions.map(action => action.canonicalTarget)
     );
 
-    const isUniqueAction = (action: ActionProto) => {
+    const isUniqueAction = (action: IActionProto) => {
       const isNonUniqueTarget = nonUniqueActionsTargets.has(
         targetStringifier.stringify(action.target)
       );

@@ -194,7 +194,7 @@ from (${query}) as insertions`;
     return `drop ${this.tableTypeAsSql(type)} if exists ${this.resolveTarget(target)}`;
   }
 
-  private createOrReplace(table: dataform.ITable) {
+  public createOrReplace(table: dataform.ITable) {
     const options = [];
     if (table.bigquery && table.bigquery.partitionBy && table.bigquery.partitionExpirationDays) {
       options.push(`partition_expiration_days=${table.bigquery.partitionExpirationDays}`);

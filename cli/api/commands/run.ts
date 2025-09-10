@@ -1,6 +1,7 @@
 import EventEmitter from "events";
 import Long from "long";
 
+import { jitCompile } from "df/cli/api/commands/jit";
 import * as dbadapters from "df/cli/api/dbadapters";
 import { IBigQueryExecutionOptions } from "df/cli/api/dbadapters/bigquery";
 import { Flags } from "df/common/flags";
@@ -25,6 +26,8 @@ export interface IExecutedAction {
 
 export interface IExecutionOptions {
   bigquery?: { jobPrefix?: string; actionRetryLimit?: number; dryRun?: boolean };
+  projectDir?: string;
+  dataformCoreVersion?: string;
 }
 
 export function run(
@@ -334,7 +337,8 @@ export class Runner {
           actionResult.status === dataform.ActionResult.ExecutionStatus.RUNNING &&
           !this.cancelled
         ) {
-          const taskStatus = await this.executeTask(client, task, actionResult, {
+          const taskStatus = await this.executeTask(client, task, actionResult,
+            action, {
             bigquery: {
               labels: action.actionDescriptor?.bigqueryLabels,
               actionRetryLimit: this.executionOptions?.bigquery?.actionRetryLimit,
@@ -366,7 +370,7 @@ export class Runner {
       actionResult.status === dataform.ActionResult.ExecutionStatus.RUNNING &&
       !(this.graph.runConfig && this.graph.runConfig.disableSetMetadata) &&
       // Only set metadata if not using BigQuery dry run
-      !this.executionOptions.bigquery?.dryRun && 
+      !this.executionOptions.bigquery?.dryRun &&
       action.type === "table"
     ) {
       try {
@@ -401,6 +405,7 @@ export class Runner {
     client: dbadapters.IDbClient,
     task: dataform.IExecutionTask,
     parentAction: dataform.IActionResult,
+    action: dataform.IExecutionAction,
     options: { bigquery?: dataform.IBigQueryOptions & IBigQueryExecutionOptions }
   ): Promise<dataform.TaskResult.ExecutionStatus> {
     const timer = Timer.start();
@@ -411,12 +416,13 @@ export class Runner {
     };
     parentAction.tasks.push(taskResult);
     this.notifyListeners();
-    
-    if(options.bigquery?.dryRun && task.type === "assertion") {
+
+    if (options.bigquery?.dryRun && task.type === "assertion") {
       taskResult.status = dataform.TaskResult.ExecutionStatus.SUCCESSFUL;
     }
-    else if(task.type === "jit") {
-      
+    else if (task.type === "jit") {
+      const compiledTask = await jitCompile(client, action, task, this.graph, this.executionOptions);
+      return await this.executeTask(client, compiledTask, parentAction, action, options);
     }
     else {
       try {
@@ -444,6 +450,7 @@ export class Runner {
         taskResult.status = this.cancelled
           ? dataform.TaskResult.ExecutionStatus.CANCELLED
           : dataform.TaskResult.ExecutionStatus.FAILED;
+        console.error(task.statement);
         taskResult.errorMessage = `${this.graph.projectConfig.warehouse} error: ${e.message}`;
         if (e.metadata?.bigquery?.jobId) {
           taskResult.metadata = {
@@ -464,7 +471,7 @@ class Timer {
   public static start(existingTiming?: dataform.ITiming) {
     return new Timer(existingTiming?.startTimeMillis.toNumber() || new Date().valueOf());
   }
-  private constructor(readonly startTimeMillis: number) {}
+  private constructor(readonly startTimeMillis: number) { }
 
   public current(): dataform.ITiming {
     return {

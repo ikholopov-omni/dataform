@@ -1,7 +1,7 @@
-load("//tools:ts_library.bzl", "ts_library")
-load("//:version.bzl", "DF_VERSION")
-load("//packages:index.bzl", "LICENSE_HEADER", "add_license_header_to_file", "pkg_bundle", "pkg_json", "pkg_npm_tar")
 load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_binary")
+load("//:version.bzl", "DF_VERSION")
+load("//packages:index.bzl", "LICENSE_HEADER", "pkg_bundle", "pkg_json", "pkg_npm_tar")
+load("//tools:ts_library.bzl", "ts_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,6 +10,7 @@ ts_library(
     srcs = glob(["*.ts"]),
     deps = [
         "//cli",
+        "//cli/vm:compile_jit_loader",
         "//cli/vm:compile_loader",
     ],
 )
@@ -87,11 +88,23 @@ pkg_bundle(
     ],
 )
 
+pkg_bundle(
+    name = "worker_jit_bundle",
+    allow_node_builtins = True,
+    args = ["--banner='#!/usr/bin/env node\n" + LICENSE_HEADER + "'"],
+    entry_point = "worker_jit.ts",
+    externals = externals,
+    deps = [
+        ":cli",
+    ],
+)
+
 pkg_npm_tar(
     name = "package",
     deps = [
         ":bundle",
         ":package.json",
         ":worker_bundle",
+        ":worker_jit_bundle",
     ],
 )

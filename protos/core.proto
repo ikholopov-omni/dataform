@@ -317,8 +317,18 @@ message JitAction {
   string jit_action = 7;
 
   ActionDescriptor action_descriptor = 8;
+
+  enum JitActionType {
+    UNKNOWN_TYPE = 0;
+    TABLE = 1;
+    INCREMENTAL = 2;
+    VIEW = 3;
+    OPERATION = 5;
+
+    reserved 4;
+  }
   
-  TableType enum_type = 9;
+  JitActionType enum_type = 9;
 }
 
 message LoadConfiguration {

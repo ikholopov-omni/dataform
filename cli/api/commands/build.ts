@@ -117,7 +117,7 @@ export class Builder {
       runConfig: dataform.IRunConfig) {
     return {
       ...this.toPartialExecutionAction(action),
-      tableType: utils.tableTypeEnumToString(action.enumType),
+      tableType: utils.jitActionTypeEnumToString(action.enumType),
       tasks: action.disabled
         ? {}
         : this.executionSql.jitTasks(action, runConfig).build(),

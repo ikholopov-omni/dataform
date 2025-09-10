@@ -268,6 +268,10 @@ export function tableTypeEnumToString(enumType: dataform.TableType) {
   return dataform.TableType[enumType].toLowerCase();
 }
 
+export function jitActionTypeEnumToString(enumType: dataform.JitAction.JitActionType) {
+  return dataform.JitAction.JitActionType[enumType].toLowerCase();
+}
+
 export function setOrValidateTableEnumType(table: dataform.ITable) {
   let enumTypeFromStr: dataform.TableType | null = null;
   if (table.type !== "" && table.type !== undefined) {
