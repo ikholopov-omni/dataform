@@ -145,6 +145,12 @@ export async function jitCompile(
         await Promise.race([timeout, compileInChildProcess]);
         const result = await compileInChildProcess;
         const executionSql = new ExecutionSql(graph.projectConfig, executionOption.dataformCoreVersion);
+        if (action.tableType === "operation") {
+            return [{
+                type: "operation",
+                statement: result,
+            }];
+        }
         const table = {
             ...action,
             enumType: dataform.TableType[
