@@ -20,7 +20,7 @@ import { targetAsReadableString, targetStringifier } from "df/core/targets";
 import * as utils from "df/core/utils";
 import { toResolvable } from "df/core/utils";
 import { version as dataformCoreVersion } from "df/core/version";
-import { dataform } from "df/protos/ts";
+import { dataform, google } from "df/protos/ts";
 import { JitAction } from "./actions/jit_action";
 
 const DEFAULT_CONFIG = {
@@ -60,7 +60,7 @@ export class Session {
   public graphErrors: dataform.IGraphErrors;
 
   // jit.ctx.data, avilable at jit stage.
-  public jitContextData: Uint8Array;
+  public jitContextDataValue: google.protobuf.Value|undefined;
 
   constructor(
     rootDir?: string,
@@ -424,6 +424,44 @@ export class Session {
     return jitAction;
   }
 
+  public jitContextData(data: unknown): void {
+    function unknownToValue(raw: unknown): google.protobuf.Value {
+      if (raw === null) {
+        return google.protobuf.Value.create({ nullValue: google.protobuf.NullValue.NULL_VALUE });
+      }
+      if (typeof raw === "string") {
+        return google.protobuf.Value.create({ stringValue: raw as string });
+      }
+      if (typeof raw === "number") {
+        return google.protobuf.Value.create({ numberValue: raw as number });
+      }
+      if (typeof raw === "boolean") {
+        return google.protobuf.Value.create({ boolValue: raw as boolean });
+      }
+      if (typeof raw === "object" && raw instanceof Array) {
+        return google.protobuf.Value.create({
+          listValue: google.protobuf.ListValue.create({
+            values: (raw as unknown[]).map(unknownToValue)
+          })
+        });
+      }
+      if (typeof raw === "object") {
+        return google.protobuf.Value.create({
+          structValue: google.protobuf.Struct.create({
+            fields: Object.fromEntries(Object.entries(raw).map(([key, value]) => ([
+              key,
+              unknownToValue(value)
+            ])))
+          })
+        })
+      }
+      throw new Error(`Unsupported context object: ${raw}`);
+    }
+
+    this.jitContextDataValue = unknownToValue(data);
+  
+  }
+
   public compileError(err: Error | string, path?: string, actionTarget?: dataform.ITarget) {
     const fileName = path || utils.getCallerFile(this.rootDir) || __filename;
 
@@ -480,7 +518,8 @@ export class Session {
       ),
       graphErrors: this.graphErrors,
       dataformCoreVersion,
-      targets: this.actions.map(action => action.getTarget())
+      targets: this.actions.map(action => action.getTarget()),
+      jitContextData: this.jitContextDataValue,
     });
 
     this.fullyQualifyDependencies(
@@ -601,9 +640,9 @@ export class Session {
               .find(dependency)
               .forEach(
                 assertion =>
-                  (fullyQualifiedDependencies[
-                    targetAsReadableString(assertion.getTarget())
-                  ] = assertion.getTarget())
+                (fullyQualifiedDependencies[
+                  targetAsReadableString(assertion.getTarget())
+                ] = assertion.getTarget())
               );
           }
         } else {
@@ -690,7 +729,7 @@ export class Session {
     actions.forEach(action => {
       // Declarations cannot have dependencies.
       const cleanedDependencies = (action instanceof dataform.Declaration ||
-      !action.dependencyTargets
+        !action.dependencyTargets
         ? []
         : action.dependencyTargets
       ).filter(

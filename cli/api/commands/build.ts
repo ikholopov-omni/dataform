@@ -71,7 +71,8 @@ export class Builder {
       runConfig: this.runConfig,
       warehouseState: this.warehouseState,
       declarationTargets: this.prunedGraph.declarations.map(declaration => declaration.target),
-      actions
+      actions,
+      jitContextData: this.prunedGraph.jitContextData,
     });
   }
 
@@ -114,12 +115,12 @@ export class Builder {
   }
 
   private buildJitAction(action: dataform.IJitAction,
-      runConfig: dataform.IRunConfig) {
+      runConfig: dataform.IRunConfig): dataform.IExecutionAction {
     return {
       ...this.toPartialExecutionAction(action),
       tableType: utils.jitActionTypeEnumToString(action.enumType),
       tasks: action.disabled
-        ? {}
+        ? []
         : this.executionSql.jitTasks(action, runConfig).build(),
         hermeticity: dataform.ActionHermeticity.NON_HERMETIC,
     }

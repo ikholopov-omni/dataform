@@ -3,6 +3,7 @@ syntax="proto3";
 package dataform;
 
 import "protos/core.proto";
+import "protos/struct.proto";
 
 option go_package = "github.com/dataform-co/dataform/protos/dataform";
 
@@ -58,6 +59,7 @@ message ExecutionGraph {
   RunConfig run_config = 2;
   WarehouseState warehouse_state = 4;
   repeated Target declaration_targets = 5;
+  google.protobuf.Value jit_context_data = 6;
 
   repeated ExecutionAction actions = 3;
 }

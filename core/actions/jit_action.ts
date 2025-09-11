@@ -7,7 +7,6 @@ import {
     actionConfigToCompiledGraphTarget,
     checkAssertionsForDependency,
     configTargetToCompiledGraphTarget,
-    nativeRequire,
     resolveActionsConfigFilename
 } from "df/core/utils";
 import { dataform } from "df/protos/ts";

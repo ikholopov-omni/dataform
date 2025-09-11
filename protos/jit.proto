@@ -29,6 +29,7 @@ message JitCompilationRequest {
   string statement = 1;
   string project_dir = 2;
   ExecutionAction action = 3;
+  google.protobuf.Value jit_context_data = 4;
 }
 
 message JitCompilationResponse {

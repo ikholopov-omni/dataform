@@ -81,7 +81,8 @@ function forkProcess() {
 
 function jitCompileInFork(client: IDbClient,
     action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask,
-    projectDir: string
+    projectDir: string,
+    jitContextData: google.protobuf.IValue,
 ): [Promise<string>, ChildProcess] {
     const childProcess = forkProcess();
     let compileInChildProcess = new Promise<string>(async (resolve, reject) => {
@@ -120,6 +121,7 @@ function jitCompileInFork(client: IDbClient,
                 projectDir: projectDir,
                 statement: jitTask.statement,
                 action: action,
+                jitContextData: jitContextData,
             }
         }));
     });
@@ -132,7 +134,7 @@ export async function jitCompile(
     graph: dataform.IExecutionGraph, executionOption: IExecutionOptions
 ): Promise<dataform.IExecutionTask[]> {
     let [compileInChildProcess, childProcess] = jitCompileInFork(client,
-        action, jitTask, executionOption.projectDir);
+        action, jitTask, executionOption.projectDir, graph.jitContextData);
     let timer;
     const timeout = new Promise(
         (resolve, reject) =>

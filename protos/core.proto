@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package dataform;
 
+import "protos/struct.proto";
+
 option java_package = "com.dataform.protos";
 option java_outer_classname = "CoreMeta";
 option java_multiple_files = true;
@@ -366,6 +368,8 @@ message CompiledGraph {
   string dataform_core_version = 10;
 
   repeated Target targets = 11;
+
+  google.protobuf.Value jit_context_data = 15;
 
   reserved 5, 6;
 }

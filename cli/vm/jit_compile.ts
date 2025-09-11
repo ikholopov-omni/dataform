@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { NodeVM } from "vm2";
 
-import { dataform } from "df/protos/ts";
+import { dataform, google } from "df/protos/ts";
 import { IDbClient } from "df/core/db_client";
 import { Resolvable } from "df/core/contextables";
 import { resolvableAsTarget, toResolvable } from "df/core/utils";
@@ -102,7 +102,9 @@ function ref_impl(dependencies: dataform.ITarget[]) {
   return ref;
 }
 
-export async function compile(modules_path: string, client: IDbClient, action: dataform.IExecutionAction, task: dataform.IExecutionTask): Promise<Uint8Array> {
+export async function compile(modules_path: string, client: IDbClient, action: dataform.IExecutionAction, task: dataform.IExecutionTask,
+  jitContextData: google.protobuf.IValue
+): Promise<Uint8Array> {
   if (
     !fs.existsSync(
       path.join(modules_path, "node_modules", "@dataform", "core", "bundle.js")
@@ -115,6 +117,33 @@ export async function compile(modules_path: string, client: IDbClient, action: d
       "`dataform install`."
     );
   }
+  function objectFromValue(value: google.protobuf.IValue): Object | number | null | string | boolean | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value.nullValue !== undefined) {
+      return null;
+    }
+    if (value.boolValue !== undefined) {
+      return value.boolValue;
+    }
+    if (value.numberValue !== undefined) {
+      return value.numberValue;
+    }
+    if (value.stringValue !== undefined) {
+      return value.stringValue;
+    }
+    if (value.listValue !== undefined) {
+      return value.listValue.values.map(objectFromValue);
+    }
+    if (value.structValue !== undefined) {
+      return Object.fromEntries(Object.entries(value.structValue.fields).map(([key, val]) => [key, objectFromValue(val)]));
+    }
+
+    throw new Error(`Unsupported value: ${value}`);
+  }
+  const data = objectFromValue(jitContextData);
+
   const vmIndexFileName = path.resolve(path.join(modules_path, "index.js"));
   return new Promise((resolve) => {
     // First retrieve a compiler function for vm2 to process files.
@@ -131,6 +160,7 @@ export async function compile(modules_path: string, client: IDbClient, action: d
             ref: ref_impl(action.dependencyTargets),
             request: task.statement,
             return: resolve,
+            data: data,
           },
         },
       },
@@ -148,7 +178,10 @@ export function listenForExecutionRequest() {
   process.on("message", (request: dataform.IJitExecutionRequest) => {
     try {
       if (request.compile) {
-        compile(request.compile.projectDir, client, request.compile.action, {statement: request.compile.statement}).then((compiledResult: Uint8Array) => {
+        compile(request.compile.projectDir, client, 
+          request.compile.action, { statement: request.compile.statement }, 
+          request.compile.jitContextData
+        ).then((compiledResult: Uint8Array) => {
           let result = dataform.JitExecutionResponse.decode(Uint8Array.from(compiledResult));
           process.send(result);
         });
@@ -163,7 +196,7 @@ export function listenForExecutionRequest() {
       }
 
       process.send(dataform.JitExecutionResponse.create({
-        compilationResponse: {compilationError: JSON.stringify(serializableError)},
+        compilationResponse: { compilationError: JSON.stringify(serializableError) },
       }));
     }
   });
