@@ -83,8 +83,8 @@ class TargetSet {
 }
 
 
-function ref_impl(dependencies: dataform.ITarget[]) {
-  const targets = new TargetSet(dependencies);
+function ref_impl(dependencies?: dataform.ITarget[]) {
+  const targets = new TargetSet(dependencies ?? []);
 
   function ref(ref: Resolvable | string[], rest?: string[]): string {
     const target = resolvableAsTarget(toResolvable(ref, rest ?? []));
@@ -103,7 +103,7 @@ function ref_impl(dependencies: dataform.ITarget[]) {
 }
 
 export async function compile(modules_path: string, client: IDbClient, action: dataform.IExecutionAction, task: dataform.IExecutionTask,
-  jitContextData: google.protobuf.IValue
+  jitContextData: google.protobuf.IStruct
 ): Promise<Uint8Array> {
   if (
     !fs.existsSync(
@@ -142,7 +142,7 @@ export async function compile(modules_path: string, client: IDbClient, action: d
 
     throw new Error(`Unsupported value: ${value}`);
   }
-  const data = objectFromValue(jitContextData);
+  const data = Object.fromEntries(Object.entries(jitContextData.fields).map(([key, val]) => [key, objectFromValue(val)]));
 
   const vmIndexFileName = path.resolve(path.join(modules_path, "index.js"));
   return new Promise((resolve) => {
@@ -178,8 +178,8 @@ export function listenForExecutionRequest() {
   process.on("message", (request: dataform.IJitExecutionRequest) => {
     try {
       if (request.compile) {
-        compile(request.compile.projectDir, client, 
-          request.compile.action, { statement: request.compile.statement }, 
+        compile(request.compile.projectDir, client,
+          request.compile.action, { statement: request.compile.statement },
           request.compile.jitContextData
         ).then((compiledResult: Uint8Array) => {
           let result = dataform.JitExecutionResponse.decode(Uint8Array.from(compiledResult));

@@ -81,7 +81,7 @@ export function main(coreExecutionRequest: Uint8Array | string): Uint8Array | st
   globalAny.notebook = session.notebook.bind(session);
   globalAny.test = session.test.bind(session);
   globalAny.jit = session.jit.bind(session);
-  globalAny.jitContextData = session.jitContextData.bind(session);
+  globalAny.jitContext = session.jitContext.bind(session);
 
   loadActionConfigs(session, compileRequest.compileConfig.filePaths);
 

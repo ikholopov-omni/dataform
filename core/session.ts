@@ -60,7 +60,7 @@ export class Session {
   public graphErrors: dataform.IGraphErrors;
 
   // jit.ctx.data, avilable at jit stage.
-  public jitContextDataValue: google.protobuf.Value|undefined;
+  public jitContextData: google.protobuf.Struct|undefined;
 
   constructor(
     rootDir?: string,
@@ -83,6 +83,7 @@ export class Session {
     this.actions = [];
     this.tests = {};
     this.graphErrors = { compilationErrors: [] };
+    this.jitContextData = new google.protobuf.Struct();
   }
 
   public compilationSql(): CompilationSql {
@@ -424,7 +425,7 @@ export class Session {
     return jitAction;
   }
 
-  public jitContextData(data: unknown): void {
+  public jitContext(key: string, data: unknown): void {
     function unknownToValue(raw: unknown): google.protobuf.Value {
       if (raw === null) {
         return google.protobuf.Value.create({ nullValue: google.protobuf.NullValue.NULL_VALUE });
@@ -458,8 +459,12 @@ export class Session {
       throw new Error(`Unsupported context object: ${raw}`);
     }
 
-    this.jitContextDataValue = unknownToValue(data);
-  
+    if (this.jitContextData.fields[key] !== undefined) {
+      throw new Error(`JiT context data with key ${key} already exists.`);
+    }
+
+    this.jitContextData.fields[key] = unknownToValue(data);
+
   }
 
   public compileError(err: Error | string, path?: string, actionTarget?: dataform.ITarget) {
@@ -519,7 +524,7 @@ export class Session {
       graphErrors: this.graphErrors,
       dataformCoreVersion,
       targets: this.actions.map(action => action.getTarget()),
-      jitContextData: this.jitContextDataValue,
+      jitContext: this.jitContextData,
     });
 
     this.fullyQualifyDependencies(

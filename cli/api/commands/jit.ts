@@ -82,7 +82,7 @@ function forkProcess() {
 function jitCompileInFork(client: IDbClient,
     action: dataform.IExecutionAction, jitTask: dataform.IExecutionTask,
     projectDir: string,
-    jitContextData: google.protobuf.IValue,
+    jitContextData: google.protobuf.IStruct,
 ): [Promise<string>, ChildProcess] {
     const childProcess = forkProcess();
     let compileInChildProcess = new Promise<string>(async (resolve, reject) => {

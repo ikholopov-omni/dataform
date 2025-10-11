@@ -369,7 +369,7 @@ message CompiledGraph {
 
   repeated Target targets = 11;
 
-  google.protobuf.Value jit_context_data = 15;
+  google.protobuf.Struct jit_context = 15;
 
   reserved 5, 6;
 }

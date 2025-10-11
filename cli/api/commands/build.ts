@@ -72,7 +72,7 @@ export class Builder {
       warehouseState: this.warehouseState,
       declarationTargets: this.prunedGraph.declarations.map(declaration => declaration.target),
       actions,
-      jitContextData: this.prunedGraph.jitContextData,
+      jitContextData: this.prunedGraph.jitContext,
     });
   }
 
