@@ -62,8 +62,7 @@ const projectDirMustExistOption = {
     );
     if (!fs.existsSync(dataformJsonPath) && !fs.existsSync(workflowSettingsYamlPath)) {
       throw new Error(
-        `${
-          argv[projectDirOption.name]
+        `${argv[projectDirOption.name]
         } does not appear to be a dataform directory (missing workflow_settings.yaml file).`
       );
     }
@@ -209,6 +208,15 @@ const icebergOption: INamedOption<yargs.Options> = {
   },
 };
 
+const compileExtensionOption: INamedOption<yargs.Options> = {
+  name: "compile-extension",
+  option: {
+    describe: "Extension name to use at compilation stage.",
+    type: "string",
+    default: null,
+  },
+};
+
 const testConnectionOptionName = "test-connection";
 
 const watchOptionName = "watch";
@@ -221,6 +229,13 @@ const actionRetryLimitName = "action-retry-limit";
 
 function getCredentialsPath(projectDir: string, credentialsPath: string) {
   return actuallyResolve(projectDir, credentialsPath);
+}
+
+function extensionArg(compileExtensionArg: string | null) {
+  return compileExtensionArg && { 
+    name: compileExtensionArg,
+    compilationMode: dataform.ExtensionCompilationMode.APPLICATION_CODE,
+  };
 }
 
 export function runCli() {
@@ -253,7 +268,7 @@ export function runCli() {
               if (!argv[ProjectConfigOptions.defaultDatabase.name]) {
                 throw new Error(
                   `The ${ProjectConfigOptions.defaultDatabase.name} positional argument is ` +
-                    `required. Use "dataform help init" for more info.`
+                  `required. Use "dataform help init" for more info.`
                 );
               }
             }
@@ -269,7 +284,7 @@ export function runCli() {
               if (!argv[ProjectConfigOptions.defaultLocation.name]) {
                 throw new Error(
                   `The ${ProjectConfigOptions.defaultLocation.name} positional argument is ` +
-                    `required. Use "dataform help init" for more info.`
+                  `required. Use "dataform help init" for more info.`
                 );
               }
             }
@@ -285,7 +300,7 @@ export function runCli() {
 
           if (argv[icebergOption.name]) {
             const icebergConfig = promptForIcebergConfig();
-            if(icebergConfig) {
+            if (icebergConfig) {
               projectConfig.defaultIcebergConfig = icebergConfig;
             }
           }
@@ -342,7 +357,7 @@ export function runCli() {
               case credentials.TestResultStatus.OTHER_ERROR: {
                 throw new Error(
                   `Credentials test query failed: ${testResult.error.stack ||
-                    testResult.error.message}`
+                  testResult.error.message}`
                 );
               }
             }
@@ -375,6 +390,7 @@ export function runCli() {
           jsonOutputOption,
           timeoutOption,
           quietCompileOption,
+          compileExtensionOption,
           ...ProjectConfigOptions.allYargsOptions
         ],
         processFn: async argv => {
@@ -387,7 +403,8 @@ export function runCli() {
             const compiledGraph = await compile({
               projectDir,
               projectConfigOverride: ProjectConfigOptions.constructProjectConfigOverride(argv),
-              timeoutMillis: argv[timeoutOption.name] || undefined
+              timeoutMillis: argv[timeoutOption.name] || undefined,
+              extension: extensionArg(argv[compileExtensionOption.name]),
             });
             printCompiledGraph(compiledGraph, argv[jsonOutputOption.name], argv[quietCompileOption.name]);
             if (compiledGraphHasErrors(compiledGraph)) {
@@ -463,13 +480,19 @@ export function runCli() {
         format: `test [${projectDirMustExistOption.name}]`,
         description: "Run the dataform project's unit tests.",
         positionalOptions: [projectDirMustExistOption],
-        options: [credentialsOption, timeoutOption, ...ProjectConfigOptions.allYargsOptions],
+        options: [
+          credentialsOption,
+          timeoutOption,
+          compileExtensionOption,
+          ...ProjectConfigOptions.allYargsOptions
+        ],
         processFn: async argv => {
           print("Compiling...\n");
           const compiledGraph = await compile({
             projectDir: argv[projectDirMustExistOption.name],
             projectConfigOverride: ProjectConfigOptions.constructProjectConfigOverride(argv),
-            timeoutMillis: argv[timeoutOption.name] || undefined
+            timeoutMillis: argv[timeoutOption.name] || undefined,
+            extension: extensionArg(argv[compileExtensionOption.name]),
           });
           if (compiledGraphHasErrors(compiledGraph)) {
             printCompiledGraphErrors(compiledGraph.graphErrors, argv[quietCompileOption.name]);
@@ -531,13 +554,14 @@ export function runCli() {
           timeoutOption,
           tagsOption,
           bigqueryJobLabelsOption,
+          compileExtensionOption,
           ...ProjectConfigOptions.allYargsOptions
         ],
         processFn: async argv => {
           if (argv[jsonOutputOption.name] && !argv[dryRunOptionName]) {
             print(
               `For execution, the --${jsonOutputOption.name} option is only supported if the ` +
-                `--${dryRunOptionName} option is enabled`
+              `--${dryRunOptionName} option is enabled`
             );
             return;
           }
@@ -547,7 +571,8 @@ export function runCli() {
           const compiledGraph = await compile({
             projectDir: argv[projectDirOption.name],
             projectConfigOverride: ProjectConfigOptions.constructProjectConfigOverride(argv),
-            timeoutMillis: argv[timeoutOption.name] || undefined
+            timeoutMillis: argv[timeoutOption.name] || undefined,
+            extension: extensionArg(argv[compileExtensionOption.name]),
           });
           if (compiledGraphHasErrors(compiledGraph)) {
             printCompiledGraphErrors(compiledGraph.graphErrors, argv[quietCompileOption.name]);
@@ -839,7 +864,7 @@ class ProjectConfigOptions {
       ) {
         throw new Error(
           `--${ProjectConfigOptions.schemaSuffix.name} should contain only ` +
-            `alphanumeric characters and/or underscores.`
+          `alphanumeric characters and/or underscores.`
         );
       }
     }
